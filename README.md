@@ -1,6 +1,21 @@
-# ChatGPT Replica
+# ChatGPT Replica iOS App
 
 This project is a full-stack application that replicates the functionality of ChatGPT. It consists of a backend built with TypeScript and Express, and an iOS application developed in Swift. The application allows users to send and receive messages using the ChatGPT API.
+
+## Tech Stack
+
+- **Frontend**: Swift, SwiftUI
+- **Backend**: Node.js, Express
+- **API**: OpenAI ChatGPT
+- **Testing**: XCTest, Jest
+
+## Key Features
+
+- 🎨 Modern iOS UI with SwiftUI
+- ♿ Full VoiceOver accessibility support
+- 🔄 Real-time chat functionality
+- 🧪 Comprehensive test coverage
+- 🏗️ Clean architecture implementation
 
 ## Project Structure
 
