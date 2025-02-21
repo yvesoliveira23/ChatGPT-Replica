@@ -51,6 +51,23 @@ class ChatViewTests: XCTestCase {
         // Then
         XCTAssertTrue(chatView.showAlert)
         XCTAssertEqual(chatView.alertMessage, "Failed to send message: Test Error")
+    func testMessageRow_WithValidMessage_ShouldDisplayCorrectContent() throws {
+        // Given
+        let message = ChatMessage(
+            sender: "User",
+            content: "Test message",
+            timestamp: Date()
+        )
+        
+        // When
+        let messageRow = MessageRow(message: message)
+        
+        // Then
+        let sender = try messageRow.inspect().find(text: "User").string()
+        let content = try messageRow.inspect().find(text: "Test message").string()
+        
+        XCTAssertEqual(sender, "User")
+        XCTAssertEqual(content, "Test message")
     }
 
     // MARK: - Accessibility Tests
