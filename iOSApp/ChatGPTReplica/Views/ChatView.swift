@@ -44,19 +44,14 @@ struct ChatView: View {
     // MARK: - Subviews
     private var messageList: some View {
         List(messages) { message in
-            HStack {
-                Text(message.sender)
-                    .fontWeight(.bold)
-                    .accessibilityLabel("Sender: \(message.sender)")
-                Text(message.content)
-                    .accessibilityLabel("Message: \(message.content)")
-                Spacer()
-                Text(message.timestamp, style: .time)
-                    .accessibilityLabel("Timestamp: \(message.timestamp)")
-            }
+            MessageRow(message: message)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .accessibilityLabel("Message from \(message.sender): \(message.content)")
+                .accessibilityIdentifier("messageRow")
         }
-        .padding()
-        .accessibilityLabel("Message list")
+        .listStyle(.plain)
+        .id(UUID())
     }
 
     private var inputField: some View {
