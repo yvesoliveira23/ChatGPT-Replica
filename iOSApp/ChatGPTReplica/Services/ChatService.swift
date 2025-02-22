@@ -1,11 +1,12 @@
 import Dotenv
 import Foundation
 
-// MARK: - ChatService Class
-class ChatService {
+class ChatService: ObservableObject {
 
     // MARK: - Properties
-    private let cache = NSCache<NSString, NSString>()
+    @Published var messages: [ChatMessage] = []
+    @Published var errorMessage: String?
+    private let cache = NSCache<NSString, NSData>()
     private let maxMessages = 100
     private let apiKey: String
     private let apiUrl: String
@@ -34,43 +35,51 @@ class ChatService {
     }
 
     // MARK: - Message Handling
-    public func sendMessage(message: String, completion: @escaping (String?, Error?) -> Void) {
+    func sendMessage(_ message: ChatMessage) {
         // Check cache first
-        if let cachedResponse = cache.object(forKey: message as NSString) {
-            completion(cachedResponse as String, nil)
+        if let cachedResponse = cache.object(forKey: message.content as NSString) {
+            if let cachedData = cachedResponse as Data?,
+                let cachedString = String(data: cachedData, encoding: .utf8)
+            {
+                DispatchQueue.main.async { [weak self] in
+                    self?.messages.append(
+                        ChatMessage(sender: "Bot", content: cachedString, timestamp: Date()))
+                }
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.errorMessage = "Failed to decode cached response"
+                }
+            }
             return
         }
 
         // Create and send the API request
-        let request = createRequest(with: message)
+        let request = createRequest(with: message.content)
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-
             if let error = error {
-                completion(nil, error)
+                DispatchQueue.main.async {
+                    self?.errorMessage = error.localizedDescription
+                }
                 return
             }
 
             // Process response and cache it
-            if let responseString = self.processResponse(data) {
-                self.cache.setObject(responseString as NSString, forKey: message as NSString)
-                completion(responseString, nil)
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                if let responseData = responseString.data(using: .utf8) {
+                    self?.cache.setObject(
+                        responseData as NSData, forKey: message.content as NSString)
+                }
+                DispatchQueue.main.async {
+                    self?.messages.append(
+                        ChatMessage(sender: "Bot", content: responseString, timestamp: Date()))
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self?.errorMessage = "Failed to process response"
+                }
             }
         }
         task.resume()
-    }
-
-    // MARK: - Helper Methods
-    private func processResponse(_ data: Data?) -> String? {
-        guard let data = data,
-            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let choices = json["choices"] as? [[String: Any]],
-            let message = choices.first?["message"] as? [String: Any],
-            let content = message["content"] as? String
-        else {
-            return nil
-        }
-        return content
     }
 
     private func createRequest(with message: String) -> URLRequest {

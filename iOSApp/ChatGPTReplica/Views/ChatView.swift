@@ -5,10 +5,9 @@ import ViewInspector
 struct ChatView: View {
 
     // MARK: - Properties
-    @State private var messages: [ChatMessage] = []
+    @StateObject private var chatService = ChatService()
     @State private var userInput: String = ""
     @State private var showAlert: Bool = false
-    @State private var alertMessage: String = ""
 
     // MARK: - Body
     var body: some View {
@@ -20,9 +19,9 @@ struct ChatView: View {
             Alert(
                 title: Text("Error")
                     .accessibilityAddTraits(.isHeader),
-                message: Text(alertMessage)
+                message: Text(chatService.errorMessage ?? "")
                     .accessibilityAddTraits(.isStaticText)
-                    .accessibilityLabel("Error alert: \(alertMessage)")
+                    .accessibilityLabel("Error alert: \(chatService.errorMessage ?? "")")
                     .accessibilityHint("Error message"),
                 dismissButton: .default(
                     Text("OK")
@@ -36,14 +35,22 @@ struct ChatView: View {
         .accessibilityLabel("Chat conversation")
         .accessibilityHint("Contains message history and input field")
         .accessibilityAddTraits([.isDialog, .updatesFrequently])
-        .onChange(of: messages) { _ in
-            UIAccessibility.post(notification: .announcement, argument: "New message received")
+        .onChange(of: chatService.messages) { messages in
+            if let latestMessage = messages.last {
+            let announcement = "New message from \(latestMessage.sender): \(latestMessage.content)"
+            UIAccessibility.post(notification: .announcement, argument: announcement)
+            }
+        }
+        .onChange(of: chatService.errorMessage) { errorMessage in
+            guard let error = errorMessage else { return }
+            showAlert = true
+            UIAccessibility.post(notification: .announcement, argument: "Error occurred: \(error)")
         }
     }
 
     // MARK: - Subviews
     private var messageList: some View {
-        List(messages) { message in
+        List(chatService.messages) { message in
             MessageRow(message: message)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
@@ -83,14 +90,9 @@ struct ChatView: View {
     // MARK: - Methods
     private func sendMessage() {
         let newMessage = ChatMessage(sender: "User", content: userInput, timestamp: Date())
-        messages.append(newMessage)
+        chatService.messages.append(newMessage)
         userInput = ""
-        do {
-            try ChatService.sendMessage(newMessage)
-        } catch {
-            alertMessage = "Failed to send message: \(error.localizedDescription)"
-            showAlert = true
-        }
+        chatService.sendMessage(newMessage)
     }
 }
 
