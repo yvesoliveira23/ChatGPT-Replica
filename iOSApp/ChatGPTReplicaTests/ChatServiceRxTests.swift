@@ -25,7 +25,7 @@ class ChatServiceRxTests: XCTestCase {
         super.tearDown()
     }
 
-    func testMessagesObservable() {
+    func testMessagesObservable_WithUpdatedMessages_ShouldEmitLatestMessages() {
         // Given
         let scheduler = TestScheduler(initialClock: 0)
         let observer = scheduler.createObserver([ChatMessage].self)
@@ -57,7 +57,7 @@ class ChatServiceRxTests: XCTestCase {
         }
     }
 
-    func testErrorObservable() {
+    func testErrorObservable_WithErrorMessage_ShouldEmitErrorString() {
         // Given
         let scheduler = TestScheduler(initialClock: 0)
         let observer = scheduler.createObserver(String.self)
@@ -80,5 +80,60 @@ class ChatServiceRxTests: XCTestCase {
         // Then
         XCTAssertEqual(observer.events.count, 1)
         XCTAssertEqual(observer.events.first?.value.element, "Test error")
+    }
+
+    func testSendMessage_WithValidMessage_ShouldReturnResponseObservable() {
+        // Given
+        let testMessage = ChatMessage(sender: "User", content: "Hello, test")
+        let expectation = XCTestExpectation(
+            description: "Message should be sent and response received")
+
+        // When
+        let responseObservable = chatService.sendMessage(testMessage)
+
+        // Then
+        responseObservable
+            .subscribe(
+                onNext: { response in
+                    XCTAssertEqual(response.sender, "Bot")
+                    XCTAssertFalse(response.content.isEmpty)
+                    expectation.fulfill()
+                },
+                onError: { error in
+                    XCTFail("Should not fail with error: \(error)")
+                }
+            )
+            .disposed(by: disposeBag)
+
+        wait(for: [expectation], timeout: 5.0)
+    }
+
+    func testSendMessage_WithCachedMessage_ShouldReturnCachedResponse() {
+        // Given
+        let testMessage = ChatMessage(sender: "User", content: "Cached message test")
+        let cachedResponse = "This is a cached response"
+
+        // Manually add to cache using mirror
+        if let mirror = Mirror(reflecting: chatService).children.first(where: {
+            $0.label == "cache"
+        })?.value as? NSCache<NSString, NSData>,
+            let data = cachedResponse.data(using: .utf8)
+        {
+            mirror.setObject(data as NSData, forKey: testMessage.content as NSString)
+        }
+
+        // When
+        let expectation = XCTestExpectation(description: "Cached response should be returned")
+
+        // Then
+        chatService.sendMessage(testMessage)
+            .subscribe(onNext: { response in
+                XCTAssertEqual(response.sender, "Bot")
+                XCTAssertEqual(response.content, cachedResponse)
+                expectation.fulfill()
+            })
+            .disposed(by: disposeBag)
+
+        wait(for: [expectation], timeout: 2.0)
     }
 }
