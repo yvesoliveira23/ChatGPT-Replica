@@ -1,54 +1,70 @@
 import Combine
+import RxCocoa
+import RxSwift
 import UIKit
 import os.log
 
 class ChatViewController: UIViewController {
 
     // MARK: - Properties
-    private var chatView = ChatView()
-    private var chatService: ChatService?
-    private var cancellables = Set<AnyCancellable>()
+    private var chatView: UIHostingController<ChatView>?
+    private var viewModel: ChatViewModel?
+    private let disposeBag = DisposeBag()
 
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupViewModel()
         setupView()
-        chatService = ChatService()
         setupBindings()
     }
+
     // MARK: - Setup Methods
+    private func setupViewModel() {
+        viewModel = ChatViewModel()
+    }
+
     private func setupView() {
-        chatView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(chatView)
+        let chatSwiftUIView = ChatView()
+        chatView = UIHostingController(rootView: chatSwiftUIView)
+
+        guard let chatView = chatView else { return }
+
+        addChild(chatView)
+        chatView.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(chatView.view)
 
         NSLayoutConstraint.activate([
-            chatView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            chatView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            chatView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            chatView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            chatView.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            chatView.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chatView.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chatView.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
-    }
+
+        chatView.didMove(toParent: self)
     }
 
     private func setupBindings() {
-        chatView?.sendMessagePublisher
-            .sink { [weak self] message in
-                self?.sendMessage(message)
-            }
-            .store(in: &cancellables)
+        guard let viewModel = viewModel else { return }
+
+        // Bind view model error messages to display alerts
+        viewModel.error
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] errorMessage in
+                self?.showAlert(message: errorMessage)
+            })
+            .disposed(by: disposeBag)
     }
 
     // MARK: - Helper Methods
-    private func sendMessage(_ message: String) {
-        guard let chatService = chatService else { return }
-        chatService.sendMessage(message: message) { [weak self] response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("Error sending message: \(error)")
-                    self?.chatView?.addMessage(message)
-                    self?.chatView?.addMessage(response)
-                }
-            }
-        }
+    private func showAlert(message: String) {
+        let alert = UIAlertController(
+            title: "Error",
+            message: message,
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 }

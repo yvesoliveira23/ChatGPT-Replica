@@ -1,3 +1,4 @@
+import RxSwift
 import SwiftUI
 import ViewInspector
 
@@ -5,9 +6,25 @@ import ViewInspector
 struct ChatView: View {
 
     // MARK: - Properties
-    @StateObject private var chatService = ChatService()
+    @StateObject private var viewModel = ChatViewModel()
     @State private var userInput: String = ""
     @State private var showAlert: Bool = false
+    private let disposeBag = DisposeBag()
+
+    // MARK: - Initialization
+    init() {
+        setupBindings()
+    }
+
+    private func setupBindings() {
+        // Set up bindings when view is created
+        viewModel.error
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { errorMessage in
+                self.showAlert = true
+            })
+            .disposed(by: disposeBag)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -19,9 +36,9 @@ struct ChatView: View {
             Alert(
                 title: Text("Error")
                     .accessibilityAddTraits(.isHeader),
-                message: Text(chatService.errorMessage ?? "")
+                message: Text(viewModel.errorMessage ?? "")
                     .accessibilityAddTraits(.isStaticText)
-                    .accessibilityLabel("Error alert: \(chatService.errorMessage ?? "")")
+                    .accessibilityLabel("Error alert: \(viewModel.errorMessage ?? "")")
                     .accessibilityHint("Error message"),
                 dismissButton: .default(
                     Text("OK")
@@ -35,22 +52,24 @@ struct ChatView: View {
         .accessibilityLabel("Chat conversation")
         .accessibilityHint("Contains message history and input field")
         .accessibilityAddTraits([.isDialog, .updatesFrequently])
-        .onChange(of: chatService.messages) { messages in
-            if let latestMessage = messages.last {
-            let announcement = "New message from \(latestMessage.sender): \(latestMessage.content)"
-            UIAccessibility.post(notification: .announcement, argument: announcement)
-            }
-        }
-        .onChange(of: chatService.errorMessage) { errorMessage in
-            guard let error = errorMessage else { return }
-            showAlert = true
-            UIAccessibility.post(notification: .announcement, argument: "Error occurred: \(error)")
+        .onAppear {
+            // Set up additional bindings that require the view to be loaded
+            viewModel.messagesObservable
+                .observe(on: MainScheduler.instance)
+                .subscribe(onNext: { messages in
+                    if let latestMessage = messages.last {
+                        let announcement =
+                            "New message from \(latestMessage.sender): \(latestMessage.content)"
+                        UIAccessibility.post(notification: .announcement, argument: announcement)
+                    }
+                })
+                .disposed(by: disposeBag)
         }
     }
 
     // MARK: - Subviews
     private var messageList: some View {
-        List(chatService.messages) { message in
+        List(viewModel.messages) { message in
             MessageRow(message: message)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
@@ -89,10 +108,9 @@ struct ChatView: View {
 
     // MARK: - Methods
     private func sendMessage() {
-        let newMessage = ChatMessage(sender: "User", content: userInput, timestamp: Date())
-        chatService.messages.append(newMessage)
+        guard !userInput.isEmpty else { return }
+        viewModel.sendMessage(userInput)
         userInput = ""
-        chatService.sendMessage(newMessage)
     }
 }
 
