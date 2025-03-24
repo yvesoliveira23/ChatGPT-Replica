@@ -4,7 +4,7 @@ A native iOS chat application that integrates OpenAI's ChatGPT API, built with S
 
 ## Tech Stack
 
-- **iOS**: Swift, SwiftUI, XCTest
+- **iOS**: Swift, SwiftUI, RxSwift, XCTest
 - **Backend**: TypeScript, Express, Jest
 - **API**: OpenAI ChatGPT
 
@@ -12,9 +12,10 @@ A native iOS chat application that integrates OpenAI's ChatGPT API, built with S
 
 - 🎯 Native iOS UI with SwiftUI
 - ♿ Full accessibility support
-- 🔄 Real-time chat integration
+- 🔄 Real-time chat integration using RxSwift
 - 🧪 Comprehensive test coverage
-- 🏗️ Clean architecture patterns
+- 🏗️ Clean architecture with reactive patterns
+- 📱 Reactive programming with RxSwift for smooth data flow
 
 ## Project Structure
 

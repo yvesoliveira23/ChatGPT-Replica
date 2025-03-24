@@ -7,15 +7,17 @@ The ChatGPT Replica iOS application is designed to provide a seamless chat exper
 ## Features
 
 - User-friendly chat interface
-- Real-time messaging
+- Real-time messaging with reactive data streams
 - Integration with the ChatGPT API for intelligent responses
 - Accessibility features to ensure usability for all users
+- Reactive programming with RxSwift for efficient state management
 
 ## Requirements
 
 - Xcode 12 or later
 - iOS 14.0 or later
 - Swift 5.0 or later
+- RxSwift 6.5.0 or later
 
 ## Setup Instructions
 
@@ -32,7 +34,9 @@ The ChatGPT Replica iOS application is designed to provide a seamless chat exper
 
 3. **Install Dependencies**
 
-   - Ensure you have all necessary dependencies installed. If using CocoaPods or Swift Package Manager, follow the respective setup instructions.
+   - The project uses Swift Package Manager to manage dependencies including RxSwift.
+   - Dependencies should be resolved automatically when opening the project in Xcode.
+   - If not, go to File > Swift Packages > Resolve Package Versions.
 
 4. **Configure API Key**
 
@@ -52,6 +56,22 @@ The ChatGPT Replica iOS application is designed to provide a seamless chat exper
 - Follow Apple's Human Interface Guidelines for design and user experience.
 - Ensure accessibility features are implemented for users with disabilities.
 - Maintain clean and modular code for better maintainability and readability.
+
+## Architecture
+
+The application follows a clean architecture pattern with MVVM and reactive programming principles:
+
+- **Models**: Core data structures
+- **Views**: SwiftUI components that render the UI
+- **ViewModels**: Connect views with services and manage state using RxSwift
+- **Services**: Handle business logic and API communication
+
+RxSwift is used for:
+
+- Reactive data binding between layers
+- Efficient handling of asynchronous operations
+- Streamlined error handling
+- Clean unidirectional data flow
 
 ## Contributing
 
